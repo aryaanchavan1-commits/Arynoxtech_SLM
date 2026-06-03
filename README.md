@@ -1,4 +1,4 @@
-# AnonyLLM — Custom SLM Agentic System
+# Arynoxtech_SLM — Custom SLM Agentic System by Aryan chavan
 
 A **research prototype** Python 3.13 project for an advanced agentic AI system with a custom-trained Small Language Model using HuggingFace datasets (Alpaca + SQuAD + GSM8K + DailyDialog), multi-agent feedback loop, and Streamlit UI.
 
@@ -441,6 +441,9 @@ The system will:
 
 The system is a **working research prototype**. Core components are implemented and tested; some features (GRPO RL, mobile deployment) are experimental and under active development.
 
+## About creator
+Instagram :- codieryan_version
+Whatsapp := 8857912586
 ```bash
 python main.py --ui
 ```
