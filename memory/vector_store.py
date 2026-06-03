@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
 
@@ -12,7 +12,7 @@ os.environ['NUMEXPR_NUM_THREADS'] = '1'
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 
 import numpy as np
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from utils.logger import get_logger
 
@@ -23,7 +23,7 @@ class MemoryItem(BaseModel):
     id: str
     content: str
     embedding: Optional[list[float]] = None
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class VectorStore(ABC):
@@ -62,13 +62,17 @@ class FAISSVectorStore(VectorStore):
         self._load_embedding_model()
     
     def _load_embedding_model(self) -> None:
+        if os.environ.get("WORLD_MODEL_EMBEDDER", "").strip().lower() == "fallback":
+            logger.info("Using fallback vector embeddings because WORLD_MODEL_EMBEDDER=fallback")
+            self._model = None
+            return
         try:
             from sentence_transformers import SentenceTransformer
-            self._model = SentenceTransformer(self.embedding_model)
+            self._model = SentenceTransformer(self.embedding_model, local_files_only=True)
             self.dimension = self._model.get_sentence_embedding_dimension()
             logger.info(f"Loaded embedding model: {self.embedding_model}")
-        except ImportError:
-            logger.warning("sentence-transformers not installed, using mock embeddings")
+        except Exception as e:
+            logger.warning(f"Embedding model unavailable, using fallback embeddings: {e}")
             self._model = None
     
     def _get_embeddings(self, texts: list[str]) -> np.ndarray:

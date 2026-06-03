@@ -49,15 +49,16 @@ class EvaluationConfig(BaseModel):
 
 
 class ModelConfig(BaseModel):
-    model_path: str = "./models/tinyllama-trained-slm-lora/checkpoint-500"
+    model_path: str = "./models/smollm2-360m-trained-slm"
     device: str = "auto"
     max_batch_size: int = 8
     max_sequence_length: int = 512
     kv_cache_enabled: bool = True
     fallback_models: list[str] = [
         "Qwen/Qwen2.5-0.5B-Instruct",
+        "HuggingFaceTB/SmolLM2-135M-Instruct",
     ]
-    auto_download: bool = True
+    auto_download: bool = False
 
 
 class LoggingConfig(BaseModel):
@@ -77,6 +78,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         env_nested_delimiter = "__"
+        extra = "ignore"
 
 
 def get_settings() -> Settings:

@@ -1,20 +1,84 @@
-# Custom LLM Agentic System
+# AnonyLLM — Custom SLM Agentic System
 
-A **production-ready** Python 3.13 project for an advanced agentic AI system with a custom-trained TinyLlama using HuggingFace datasets (Alpaca + SQuAD + GSM8K + DailyDialog), multi-agent feedback loop, and Streamlit UI.
+A **research prototype** Python 3.13 project for an advanced agentic AI system with a custom-trained Small Language Model using HuggingFace datasets (Alpaca + SQuAD + GSM8K + DailyDialog), multi-agent feedback loop, and Streamlit UI.
 
 ## Overview
 
-Complete SLM (Small Language Model) training, serving, and chat system with:
-- **Custom SLM Training** using Nemotron-Post-Training-Dataset-v2 ✅ **TRAINED**
+Research prototype SLM (Small Language Model) training, serving, and chat system with:
+- **Custom SLM Training** (LoRA fine-tuned SmolLM2-360M-Instruct) ✅ **TRAINED**
 - **Agentic Feedback Loop** (Generator -> Critic -> Optimizer) ✅ **OPERATIONAL**
 - **World Model Engine** with imagination, thinking, and self-evaluation ✅ **ACTIVE**
-- **GRPO Reinforcement Learning** for self-improvement ✅ **ENABLED**
+- **GRPO Reinforcement Learning** for self-improvement ✅ **EXPERIMENTAL**
 - **FastAPI Model Server** for local inference ✅ **READY**
 - **Modern Streamlit Chat UI** for interactive conversations ✅ **READY**
 - **RAG + Memory** system with FAISS vector database ✅ **CONFIGURED**
 - **Hallucination Reduction** via causal & physics checks ✅ **ACTIVE**
 
 ## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.13
+- 16GB+ RAM recommended
+- 50GB+ SSD storage
+
+### Step 1: Environment Setup (Already Done)
+```bash
+python3.13 -m venv venv
+source venv/bin/activate  # or .\venv\Scripts\activate on Windows
+pip install -r requirements.txt
+```
+
+### Step 2: Launch the System
+
+**Option A: Streamlit UI (Recommended)**
+```bash
+python main.py --ui
+# or
+streamlit run ui/app.py
+```
+Then open http://localhost:8501
+
+**Option B: API Server**
+```bash
+python main.py --server
+```
+Then open http://localhost:8000
+
+**Option C: Training**
+```bash
+python main.py --train
+```
+
+## 🔐 Environment Variables (.env files)
+
+
+GitHub doesn’t accept uploading actual `.env` files, so create them locally.
+
+### 1) Create `.env.example`
+This file should contain **both** HuggingFace token and SerpAPI token placeholders.
+Create a file named `.env.example` in the project root and paste:
+
+```env
+# HuggingFace auth (optional if model is public)
+HF_TOKEN=YOUR_HF_TOKEN_HERE
+
+# Web search (optional)
+SERPAPI_API_KEY=YOUR_SERPAPI_KEY_HERE
+```
+
+### 2) Create `.env`
+Create a file named `.env` in the project root and paste (fill values):
+
+```env
+HF_TOKEN=YOUR_HF_TOKEN_HERE
+SERPAPI_API_KEY=YOUR_SERPAPI_KEY_HERE
+```
+
+## Note
+- If you are using public TinyLlama weights and datasets, `HF_TOKEN` may be optional.
+- If you get 401/403 from HuggingFace, set `HF_TOKEN`.
+
+
 
 ### Prerequisites
 - Python 3.13
@@ -214,31 +278,36 @@ asyncio.run(chat())
 
 ```
 anony_llm/
-├── core/                  # Core engine
-│   ├── slm_architecture.py   # SLM model (GQA, RoPE, SwiGLU)
-│   ├── world_model.py        # World model + GRPO RL
-│   └── tools.py             # Calculator, web, code tools
-├── agents/                # Multi-agent system
-│   ├── generator.py         # Response generation
-│   ├── critic.py            # Quality evaluation
-│   ├── optimizer.py         # Prompt optimization
-│   ├── planner.py           # Planning
-│   └── evaluator.py         # Feedback loop
-├── serving/               # Model serving
-│   ├── model.py             # Model manager
-│   ├── api.py               # API endpoints
-│   └── server.py            # FastAPI server
-├── memory/                # RAG & memory
-│   ├── memory_manager.py    # Memory management
-│   └── vector_store.py      # FAISS vector DB
-├── ui/                    # Streamlit UI
-│   └── app.py               # Chat interface
-├── models/                # Trained models ✅
-│   ├── tinyllama-trained-slm/      # Production merged model
-│   └── tinyllama-trained-slm-lora/  # LoRA checkpoint
-├── scripts/               # Training scripts
-│   └── train_nemotron_slm.py  # Training pipeline (TinyLlama + Alpaca/SQuAD/GSM8K/DailyDialog)
-└── main.py                # Entry point
+├── core/                      # Core engine
+│   ├── slm_architecture.py       # Custom SLM model (GQA, RoPE, SwiGLU)
+│   ├── world_model.py            # World model + GRPO RL
+│   └── tools.py                 # Calculator, web, code tools
+├── agents/                    # Multi-agent system
+│   ├── generator.py             # Response generation
+│   ├── critic.py                # Quality evaluation
+│   ├── optimizer.py             # Prompt optimization
+│   ├── planner.py               # Planning
+│   └── evaluator.py             # Feedback loop
+├── serving/                   # Model serving
+│   ├── model.py                 # Model manager (handles fallback chain)
+│   ├── api.py                   # API endpoints
+│   └── server.py                # FastAPI server
+├── memory/                    # RAG & memory
+│   ├── memory_manager.py        # Memory management
+│   └── vector_store.py          # FAISS vector DB
+├── ui/                        # Streamlit UI
+│   └── app.py                   # Chat interface
+├── models/                    # Trained models ✅
+│   ├── anonyllm-360m-trained/    # Merged AnonyLLM-360M (INT4)
+│   ├── anonyllm-360m-lora/       # LoRA adapter checkpoints
+│   ├── smollm2-360m-trained-slm/ # Merged SmolLM2-360M (INT4)
+│   ├── tiny-mobile-slm/          # Custom 22M param SLM
+│   └── optimized/                # Quantized variants (int4/int8)
+├── scripts/                   # Training scripts
+│   ├── train_anonyllm.py        # Full LoRA/QLoRA training pipeline
+│   ├── train_mistral_slm.py     # Alternative training + smoke tests
+│   └── optimize_for_mobile.py   # Quantization & export
+└── main.py                    # Entry point (--ui, --server, --train)
 ```
 
 ## 🚀 Performance
@@ -286,22 +355,21 @@ You are a precise, honest AI assistant. Follow these rules:
 
 ## 🎯 Key Features
 
-✅ **Production-Ready**: Error handling, logging, monitoring  
-✅ **Fast**: < 15s response time  
-✅ **Accurate**: Multi-layer hallucination reduction  
-✅ **Self-Improving**: GRPO RL continuous learning  
-✅ **Agentic**: Multi-agent collaboration  
-✅ **Trained**: Custom model on real data  
+✅ **Prototype Ready**: Modular, extensible architecture  
+✅ **Custom Trained**: LoRA fine-tuned SmolLM2-360M-Instruct  
+✅ **Multi-Agent**: Generator + Critic + Optimizer pipeline  
+✅ **Hallucination Reduction**: Causal + physics consistency checks  
+✅ **Self-Evaluation**: Response quality scoring & RL  
 ✅ **World Model**: Scenario simulation & reasoning  
-✅ **RAG**: Document search & memory  
-✅ **Web Search**: Automatic fact-checking  
+✅ **RAG**: Document search & FAISS vector memory  
+✅ **Web Search**: Automatic fact-checking (when online)  
 ✅ **Tools**: Calculator, code executor  
 
 ## 🤖 About
 
 **Creator**: Aryan Chavan  
 **License**: MIT  
-**Version**: 2.0 (Production)  
+**Version**: 2.0 (Research Prototype)  
 
 ---
 
@@ -311,10 +379,44 @@ You are a precise, honest AI assistant. Follow these rules:
 2. **GRPO RL**: Self-improves through experience
 3. **Multi-Agent**: Generator + Critic + Optimizer collaboration
 4. **Hallucination Reduction**: Causal + Physics + Self-evaluation
-5. **Trained Model**: Not just a wrapper - actual fine-tuning
-6. **Production Quality**: Error handling, logging, monitoring
-7. **Fast**: Optimized for quick responses
+5. **Trained Model**: Not just a wrapper — actual LoRA fine-tuning
+6. **Error Handling**: Graceful fallback chain (local → HuggingFace → mock)
+7. **Quantization**: int4/int8 for memory-constrained devices
 8. **Extensible**: Easy to add new tools & agents
+
+## 📖 What I Learned
+
+Building this project taught me a wide range of practical ML engineering skills:
+
+### Model Training & Optimization
+- **LoRA / QLoRA fine-tuning** of 360M-parameter models on a consumer GPU (RTX 3050 4GB) using 4-bit quantization to fit in VRAM
+- **Dataset preparation**: Curated multi-domain training data from Alpaca, SQuAD, GSM8K, DailyDialog, Dolly, and OASST1 — handling format conversion (Alpaca → ChatML), filtering, and deduplication
+- **Training pipeline design**: Checkpointing, gradient accumulation, learning rate scheduling, and evaluating loss curves to detect overfitting
+- **Quantization**: Converting trained models to int4/int8 for memory-constrained deployment without catastrophic quality loss
+
+### CUDA & Memory Management
+- Debugging **CUDA out-of-memory (OOM)** errors on a laptop GPU — learned to profile memory usage with `torch.cuda.memory_summary()` and optimize batch sizes
+- Resolving **bitsandbytes/CUDA compatibility** issues (`CUBLAS_STATUS_NOT_SUPPORTED`) by matching library versions to the CUDA runtime
+- Setting up **Windows page file** for model loading — discovered that memory-mapped model loading requires significant virtual address space even when the weights are quantized
+
+### Transformer Architecture
+- Implementing **Grouped Query Attention (GQA)**, **Rotary Position Embeddings (RoPE)**, **SwiGLU activation**, and **RMSNorm** from scratch in PyTorch
+- Building a **KV-cache** for efficient autoregressive generation
+- Making a custom model compatible with the HuggingFace Trainer interface (returning `(loss,)` tuple for training, logits for inference)
+
+### Agentic Systems
+- Designing a **multi-agent feedback loop** (Generator → Critic → Optimizer → Planner) with structured message passing between agents
+- Implementing a **World Model** that simulates multiple scenario outcomes before generating a response
+- Building **GRPO (Group Relative Policy Optimization)** — a simplified RL policy network for self-improvement based on heuristic reward signals
+
+### Systems Engineering
+- **Graceful degradation**: A multi-tier fallback chain (local merged model → LoRA adapter → HuggingFace download → mock mode) ensures the system never crashes on missing models
+- **Async architecture**: `asyncio`-based serving layer with concurrent request handling via FastAPI
+- **Streamlit UI**: Building an interactive chat interface with user authentication, file upload, and real-time status updates
+
+### Debugging & Testing
+- Writing **diagnostic tools** to verify model integrity (`_is_model_broken()` checks for repetitive/garbage output)
+- **Cross-platform compatibility**: Handling Windows-specific issues (page files, symlinks, path separators) while keeping the code portable
 
 ## 📖 Documentation
 
@@ -337,7 +439,7 @@ The system will:
 
 ## 🎉 Ready to Use!
 
-The system is **production-ready** and fully operational. All components are tested and working.
+The system is a **working research prototype**. Core components are implemented and tested; some features (GRPO RL, mobile deployment) are experimental and under active development.
 
 ```bash
 python main.py --ui

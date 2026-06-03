@@ -9,21 +9,23 @@ from .base import AgentResponse, BaseAgent
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
+DEFAULT_MODEL_PATH = "./models/smollm2-360m-trained-slm"
 
 
 class GeneratorAgent(BaseAgent):
     def __init__(
         self,
         name: str = "Generator",
-        model_path: str = "./models/tinyllama-trained-slm",
+        model_path: str = DEFAULT_MODEL_PATH,
         temperature: float = 0.7,
         max_tokens: int = 4096,
         imagination_depth: int = 3,
         thinking_steps: int = 5,
+        model_manager: Optional[ModelManager] = None,
     ):
         super().__init__(name, model_path, "", temperature, max_tokens)
-        self.model_manager = ModelManager(model_path=model_path)
-        self._model_loaded = False
+        self.model_manager = model_manager or ModelManager(model_path=model_path)
+        self._model_loaded = model_manager is not None
 
         # Native World Model Engine
         self.world_model = WorldModel(

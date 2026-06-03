@@ -35,7 +35,7 @@ async def main():
     
     # Test 1: Model Loading
     print("\n1. Loading model...")
-    manager = ModelManager(model_path="./models/tinyllama-trained-slm")
+    manager = ModelManager(model_path="./models/smollm2-360m-trained-slm")
     await manager.load_model()
     status = await manager.get_status()
     
@@ -120,7 +120,7 @@ async def main():
     print(f"{PASS} Hallucination Detection")
     print(f"{PASS} Full Pipeline")
     print("="*60)
-    print("  ALL TESTS PASSED - System is operational!")
+    print("  ALL TESTS PASSED - core system is operational!")
     print("="*60)
     
     return 0

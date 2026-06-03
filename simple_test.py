@@ -36,8 +36,13 @@ for f in files:
 # Test 2: Check models exist
 print("\n2. Checking trained models...")
 models = [
-    "models/tinyllama-trained-slm",
-    "models/tinyllama-trained-slm-lora/checkpoint-500"
+    "models/smollm2-360m-trained-slm",
+    "models/anonyllm-360m-trained",
+    "models/anonyllm-360m-lora",
+    "models/tiny-mobile-slm",
+    "models/optimized/smollm2-360m/int4",
+    "models/optimized/smollm2-360m/int8",
+    "models/optimized/tiny-mobile/int8",
 ]
 for m in models:
     exists = os.path.exists(m)
@@ -78,13 +83,14 @@ try:
     print(f"        World model depth: {settings.world_model.imagination_depth}")
     print(f"        Thinking steps: {settings.world_model.thinking_steps}")
     print(f"        RL enabled: {settings.world_model.enable_grpo}")
+    print(f"        Model path: {settings.model.model_path}")
 except Exception as e:
     print(f"   [FAIL] Settings: {e}")
 
 print("\n" + "="*60)
 print("  SYSTEM STATUS: OPERATIONAL")
 print("="*60)
-print("\nThe system is production-ready with:")
+print("\nThe system is a functional research prototype with:")
 print("  • Custom SLM architecture (GQA, RoPE, SwiGLU)")
 print("  • World Model with imagination & simulation")
 print("  • GRPO RL agent for self-improvement")
@@ -92,9 +98,15 @@ print("  • Multi-agent system (Generator, Critic, Optimizer)")
 print("  • Hallucination reduction (causal & physics checks)")
 print("  • Web search integration (when online)")
 print("  • RAG with vector memory")
-print("  • Trained on Nemotron dataset")
+print("  • Trained on Alpaca + SQuAD + GSM8K")
+print("  • Voice integration hooks (TTS/STT)")
+print("\nAvailable Models:")
+print("  • SmolLM2-360M (merged, INT4 257MB) - Best quality")
+print("  • AnonyLLM-360M (merged, INT4 257MB) - Custom fine-tuned")
+print("  • Tiny Mobile SLM 22M (fp16 / INT8 29MB) - Ultra portable")
 print("\nTo run:")
-print("  python main.py --ui      # Launch Streamlit UI")
-print("  python main.py --server  # Launch API server")
-print("  python main.py --train   # Run training")
+print("  python main.py --ui              # Launch Streamlit UI")
+print("  SLM_MODE=mobile python main.py --ui  # Use tiny mobile model")
+print("  python main.py --server          # Launch API server")
+print("  python main.py --train           # Run training")
 print("="*60)

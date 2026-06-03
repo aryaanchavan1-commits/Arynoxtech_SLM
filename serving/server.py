@@ -96,6 +96,12 @@ class ModelServer:
         async def generate_text(request: GenerateRequest) -> JSONResponse:
             """Generate text based on input prompt."""
             try:
+                if getattr(self.model_manager, '_is_mock', False):
+                    return JSONResponse(content={
+                        "response": "⚠️ Model engine not available: system memory is insufficient. "
+                                    "Close other programs and increase page file (run set_pagefile.ps1 as Admin).",
+                        "mock": True
+                    })
                 response = await self.model_manager.generate(
                     prompt=request.prompt,
                     max_tokens=request.max_tokens,
@@ -194,7 +200,7 @@ class ChatRequest(BaseModel):
 if __name__ == "__main__":
     async def run_main():
         server = ModelServer(
-            model_path="./models/tinyllama-trained-slm",
+            model_path="./models/smollm2-360m-trained-slm",
             host="0.0.0.0",
             port=8000
         )

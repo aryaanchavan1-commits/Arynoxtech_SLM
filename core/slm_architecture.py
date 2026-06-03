@@ -199,6 +199,7 @@ class SLMModel(nn.Module):
         self.norm = RMSNorm(dim)
         self.lm_head = nn.Linear(dim, vocab_size, bias=False)
 
+        self._tie_weights = tie_weights
         if tie_weights:
             self.lm_head.weight = self.token_embedding.weight
 
@@ -253,6 +254,12 @@ class SLMModel(nn.Module):
             return (loss,)
 
         return logits
+
+    def prepare_for_save(self):
+        """Break weight tying so safetensors can save without shared memory error."""
+        if self._tie_weights and self.lm_head.weight.data_ptr() == self.token_embedding.weight.data_ptr():
+            self.lm_head.weight = torch.nn.Parameter(self.lm_head.weight.clone())
+        return self
 
     @torch.no_grad()
     def generate(

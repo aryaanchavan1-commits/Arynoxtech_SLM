@@ -1,0 +1,12 @@
+{
+  "architecture": "custom_slm_gqa_rope_swiglu",
+  "params": 22075776,
+  "dim": 384,
+  "layers": 8,
+  "heads": 6,
+  "kv_heads": 3,
+  "vocab_size": 16000,
+  "max_seq_len": 256,
+  "creator": "Aryan Chavan",
+  "datasets": "alpaca+squad+gsm8k"
+}

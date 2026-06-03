@@ -33,6 +33,17 @@ from ui.auth import (
 logger = get_logger(__name__)
 setup_logging(level="INFO")
 
+DEFAULT_ANONYLLM_PATH = "./models/anonyllm-360m-trained"
+DEFAULT_SMOLLM_PATH = "./models/smollm2-360m-trained-slm"
+DEFAULT_TINY_PATH = "./models/tiny-mobile-slm"
+DEFAULT_MODEL_PATH = (
+    os.environ.get("MODEL_PATH") or
+    (DEFAULT_ANONYLLM_PATH if os.path.exists(DEFAULT_ANONYLLM_PATH)
+     else DEFAULT_SMOLLM_PATH if os.path.exists(DEFAULT_SMOLLM_PATH)
+     else DEFAULT_TINY_PATH)
+)
+
+
 
 def _run_async(coro):
     try:
@@ -49,7 +60,7 @@ def init_session_state():
     defaults = {
         "messages": [],
         "world_model": lambda: WorldModel(auto_adjust_depth=True, auto_adjust_steps=True),
-"model_manager": lambda: ModelManager(model_path="./models/nemotron-slm-final"),
+        "model_manager": lambda: ModelManager(model_path=DEFAULT_MODEL_PATH),
         "memory_manager": None,
         "initialized": False,
         "uploaded_files": [],
@@ -221,6 +232,14 @@ def run_app():
     if st.session_state.memory_manager is None:
         st.session_state.memory_manager = get_memory_manager()
 
+    if not getattr(st.session_state, "_agent_runtime_ready", False):
+        st.session_state._agent_runtime_ready = True
+        shared_manager = st.session_state.model_manager
+        st.session_state.generator_agent = GeneratorAgent(model_path=shared_manager.model_path, model_manager=shared_manager)
+        st.session_state.critic_agent = CriticAgent(model_path=shared_manager.model_path, model_manager=shared_manager)
+        st.session_state.optimizer_agent = PromptOptimizerAgent(model_path=shared_manager.model_path, model_manager=shared_manager)
+        st.session_state.planner_agent = PlannerAgent(model_path=shared_manager.model_path, model_manager=shared_manager)
+
     with st.sidebar:
         st.header("⚙️ Settings")
         st.subheader(f"👤 {user_name}")
@@ -266,7 +285,12 @@ def run_app():
         mm = st.session_state.model_manager
         status = "Unknown"; mtype = "Unknown"
         if mm.model is not None:
-            status = "Active"; mtype = mm.model_path
+            status = "Active"
+            if getattr(mm, '_is_mock', False):
+                status = "⚠️ MOCK (limited)"
+                st.error("⚠️ **Model failed to load** — using mock fallback.\n\n"
+                          "**Solution:** Close other programs, then run `train.bat` as Administrator, or increase your Windows page file to 8GB+ and restart.")
+            mtype = mm.model_path
         st.info(f"Model: {status}\n{mtype[:40] if mtype else ''}")
 
         wm = st.session_state.world_model
@@ -488,7 +512,7 @@ async def _simple_generate(prompt, world_model, model_manager, context):
 
 async def _fast_direct_generate(prompt, world_model, model_manager, context):
     """Full multi-agent pipeline: Generator -> Critic -> Optimizer -> Planner -> Self-Eval."""
-    gen = GeneratorAgent(model_path=model_manager.model_path)
+    gen = GeneratorAgent(model_path=model_manager.model_path, model_manager=model_manager)
     gen_response = await gen.execute(prompt, context=context)
     
     if not gen_response.success:
@@ -496,20 +520,20 @@ async def _fast_direct_generate(prompt, world_model, model_manager, context):
     
     initial_output = gen_response.content
     
-    crit = CriticAgent(model_path=model_manager.model_path)
+    crit = CriticAgent(model_path=model_manager.model_path, model_manager=model_manager)
     crit_response = await crit.execute(initial_output, context={"user_query": prompt})
     
     eval_data = await world_model.self_evaluate_and_improve(prompt, initial_output, model_manager)
     
     if eval_data.get("needs_improvement", False):
-        opt = PromptOptimizerAgent(model_path=model_manager.model_path)
+        opt = PromptOptimizerAgent(model_path=model_manager.model_path, model_manager=model_manager)
         opt_response = await opt.execute("", context={
             "current_prompt": "",
             "critique": crit_response.content if crit_response.success else "",
             "scores": crit_response.metadata.get("scores", {}) if crit_response.success else {},
         })
         
-        planner = PlannerAgent(model_path=model_manager.model_path)
+        planner = PlannerAgent(model_path=model_manager.model_path, model_manager=model_manager)
         plan_response = await planner.execute(f"Improve response to: {prompt}")
         
         thoughts = await world_model.think(prompt, context)

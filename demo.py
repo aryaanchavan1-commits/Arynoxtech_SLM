@@ -28,10 +28,12 @@ print("   [OK] Hallucination Reduction (causal, physics, self-eval)")
 
 print("\n2. Trained Models:")
 import os
-if os.path.exists("models/tinyllama-trained-slm/config.json"):
-    print("   [OK] Production model: tinyllama-trained-slm (1.1B params)")
-if os.path.exists("models/tinyllama-trained-slm-lora/checkpoint-500/adapter_model.safetensors"):
-    print("   [OK] LoRA checkpoint: trained on Nemotron dataset")
+if os.path.exists("models/anonyllm-360m-trained/config.json"):
+    print("   [OK] AnonyLLM-360M trained model")
+if os.path.exists("models/smollm2-360m-trained-slm/config.json"):
+    print("   [OK] SmolLM2-360M trained model")
+if os.path.exists("models/anonyllm-360m-lora/adapter_config.json"):
+    print("   [OK] AnonyLLM LoRA checkpoint")
 
 print("\n3. Key Features:")
 print("   [OK] Fast response: 5-15s (CPU)")
@@ -61,7 +63,7 @@ print("   • Tool-based verification")
 print("   • Quality-filtered training data")
 
 print("\n" + "="*70)
-print("  STATUS: PRODUCTION-READY [OK]")
+print("  STATUS: RESEARCH PROTOTYPE [OK]")
 print("="*70)
 
 # Verify imports
@@ -91,5 +93,5 @@ except:
     print("   [FAIL] CriticAgent")
 
 print("\n" + "="*70)
-print("  All systems operational! [OK]")
+print("  All core systems operational! [OK]")
 print("="*70)

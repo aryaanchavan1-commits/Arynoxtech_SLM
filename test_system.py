@@ -36,7 +36,7 @@ async def test_model_loading():
     """Test 1: Model loads correctly"""
     print_header("TEST 1: Model Loading")
     try:
-        manager = ModelManager(model_path="./models/tinyllama-trained-slm")
+        manager = ModelManager(model_path="./models/smollm2-360m-trained-slm")
         await manager.load_model()
         status = await manager.get_status()
         print(f"{PASS} Model loaded: {status['model_path']}")
@@ -52,7 +52,7 @@ async def test_generation_speed():
     """Test 2: Generation speed (< 10 seconds)"""
     print_header("TEST 2: Generation Speed (< 10s)")
     try:
-        manager = ModelManager(model_path="./models/tinyllama-trained-slm")
+        manager = ModelManager(model_path="./models/smollm2-360m-trained-slm")
         await manager.load_model()
         
         prompt = "What is photosynthesis? Explain step by step."
@@ -151,7 +151,7 @@ async def test_agentic_system():
     print_header("TEST 5: Agentic System (Generator)")
     try:
         gen = GeneratorAgent(
-            model_path="./models/tinyllama-trained-slm",
+            model_path="./models/smollm2-360m-trained-slm",
             imagination_depth=2,
             thinking_steps=3
         )
@@ -181,7 +181,7 @@ async def test_full_pipeline():
     print_header("TEST 6: Full Pipeline (World Model + Generation)")
     try:
         wm = WorldModel(imagination_depth=2, thinking_steps=3)
-        manager = ModelManager(model_path="./models/tinyllama-trained-slm")
+        manager = ModelManager(model_path="./models/smollm2-360m-trained-slm")
         await manager.load_model()
         
         prompt = "What is photosynthesis and why is it important?"
@@ -235,7 +235,7 @@ async def main():
     all_passed = all(r[1] for r in results)
     print("="*60)
     if all_passed:
-        print("  ALL TESTS PASSED! System is production-ready.")
+        print("  ALL TESTS PASSED! System is operational.")
     else:
         print("  Some tests failed. Review above.")
     print("="*60)

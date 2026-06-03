@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Generic, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class AgentResponse(BaseModel):
     content: str
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
     success: bool = True
     error: Optional[str] = None
 

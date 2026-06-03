@@ -1,0 +1,7 @@
+{
+  "base_model": "HuggingFaceTB/SmolLM2-360M-Instruct",
+  "lora_source": "./models/smollm2-360m-trained-slm-lora",
+  "type": "merged_lora",
+  "params": "360M",
+  "creator": "Aryan Chavan"
+}

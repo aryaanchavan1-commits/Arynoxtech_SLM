@@ -1,0 +1,7 @@
+ Old training scripts were archived/removed from the active path.
+
+Active script now:
+  scripts/train_mistral_slm.py
+
+Do not rely on train_tinyllama_slm.py / train_offline_slm.py for new training runs.
+

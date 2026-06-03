@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .server import ModelServer
 
 
-def create_app(model_path: str = "./models", host: str = "0.0.0.0", port: int = 8000) -> FastAPI:
+def create_app(model_path: str = "./models/smollm2-360m-trained-slm", host: str = "0.0.0.0", port: int = 8000) -> FastAPI:
     """
     Create and configure the FastAPI application.
 
@@ -43,7 +43,6 @@ def create_app(model_path: str = "./models", host: str = "0.0.0.0", port: int = 
         port=port
     )
 
-    # Include routes
-    app.include_router(model_server.create_routes())
+    model_server.setup()
 
-    return app
+    return model_server.app or app

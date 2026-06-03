@@ -17,7 +17,7 @@ import asyncio
 async def quick_test():
     print("Testing model loading...")
     # Force use of fallback model
-    manager = ModelManager(model_path="./models/tinyllama-trained-slm")
+    manager = ModelManager(model_path="./models/smollm2-360m-trained-slm")
     await manager.load_model()
     status = await manager.get_status()
     print(f"Model loaded: {status['loaded']}")

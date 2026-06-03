@@ -1,0 +1,10 @@
+{
+  "base_model": "HuggingFaceTB/SmolLM2-360M-Instruct",
+  "source": "Alpaca + SQuAD + GSM8K + DailyDialog + Dolly + OASST1 + Code + ToolUse",
+  "format": "ChatML (<|im_start|>/<|im_end|>)",
+  "lora_r": 16,
+  "lora_alpha": 32,
+  "gradient_checkpointing": true,
+  "creator": "Aryan Chavan",
+  "model_name": "AnonyLLM-360M-v3"
+}

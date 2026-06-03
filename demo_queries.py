@@ -26,7 +26,10 @@ async def demo():
     # Initialize
     print("\n[1/4] Loading model...")
     wm = WorldModel(imagination_depth=2, thinking_steps=3)
-    manager = ModelManager(model_path="./models/tinyllama-trained-slm")
+    model_path = "./models/anonyllm-360m-trained"
+    if not os.path.exists(os.path.join(model_path, "config.json")):
+        model_path = "./models/smollm2-360m-trained-slm"
+    manager = ModelManager(model_path=model_path)
     await manager.load_model()
     print("      ✅ Model loaded")
     

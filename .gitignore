@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+*.egg
+
+# Environment
+.env
+.venv/
+venv/
+
+# Logs
+logs/
+*.log
+
+# Output files
+*.out.txt
+train.bat
+set_pagefile.bat
+set_pagefile.ps1
+set_pagefile.vbs
+
+# Model weights (too large for git - download or train separately)
+models/anonyllm-360m-trained/model.safetensors
+models/anonyllm-360m-lora/adapter_model.safetensors
+models/smollm2-360m-trained-slm/model.safetensors
+models/smollm2-360m-trained-slm-lora-old-backup/
+models/optimized/
+models/tiny-mobile-slm/model.safetensors
+models/tiny-mobile-slm/model_fp16.pt
+models_backup/
+
+# Data files with user info
+data/user_data/
+data/users.json
+data/memory/
+
+# Cache directories
+.hf_cache/

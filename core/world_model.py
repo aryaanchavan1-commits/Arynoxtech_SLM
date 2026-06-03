@@ -38,13 +38,22 @@ class SemanticEmbedder:
     def __init__(self,model_name="sentence-transformers/all-MiniLM-L6-v2",dim=384):
         self.model_name=model_name; self.dim=dim; self._model=None; self._load()
     def _load(self):
-        try:
-            from sentence_transformers import SentenceTransformer
-            self._model=SentenceTransformer(self.model_name)
-            self.dim=self._model.get_sentence_embedding_dimension()
-            print(f"[WorldModel] Loaded embedder: {self.model_name} (dim={self.dim})")
-        except Exception as e:
-            print(f"[WorldModel] embedder fallback: {e}")
+        if os.environ.get("WORLD_MODEL_EMBEDDER", "").strip().lower() == "fallback":
+            print("[WorldModel] embedder fallback: forced by WORLD_MODEL_EMBEDDER=fallback")
+            return
+        # Try loading with download first, then local-only, then fall back to random
+        from sentence_transformers import SentenceTransformer
+        for try_download in [False, True]:
+            try:
+                self._model=SentenceTransformer(self.model_name, local_files_only=not try_download)
+                self.dim=self._model.get_sentence_embedding_dimension()
+                print(f"[WorldModel] Loaded embedder: {self.model_name} (dim={self.dim})")
+                return
+            except Exception as e:
+                if try_download:
+                    print(f"[WorldModel] embedder fallback: {e}")
+                else:
+                    print(f"[WorldModel] local model not found, trying download...")
     def encode(self,text:str)->np.ndarray:
         if self._model:
             try: return self._model.encode(text,show_progress_bar=False,convert_to_numpy=True).astype(np.float32)
@@ -93,7 +102,8 @@ class GRPOAgent:
     def get_action(self,state):
         with torch.no_grad(): probs=self.pi(state)
         dist=torch.distributions.Categorical(probs)
-        a=dist.sample().item(); lp=dist.log_prob(torch.tensor(a)).item()
+        action_tensor = dist.sample()
+        a=action_tensor.item(); lp=dist.log_prob(action_tensor).item()
         return a,["direct_answer","step_by_step","analogy_explain","critique_first"][a],lp
     def evaluate(self,response,query):
         s=0.0
@@ -109,19 +119,19 @@ class GRPOAgent:
     def update(self,bs=32,epochs=4):
         if len(self.buf)<bs: return
         batch=random.sample(list(self.buf),bs)
-        states=torch.stack([e.state for e in batch]).squeeze(1)
-        actions=torch.tensor([e.action for e in batch],dtype=torch.long)
-        rewards=torch.tensor([e.reward for e in batch],dtype=torch.float32)
-        next_states=torch.stack([e.next_state for e in batch]).squeeze(1)
-        dones=torch.tensor([e.done for e in batch],dtype=torch.float32)
-        old_lp=torch.tensor([e.log_prob for e in batch],dtype=torch.float32)
+        states=torch.stack([e.state for e in batch]).squeeze(1).to(self.device)
+        actions=torch.tensor([e.action for e in batch],dtype=torch.long,device=self.device)
+        rewards=torch.tensor([e.reward for e in batch],dtype=torch.float32,device=self.device)
+        next_states=torch.stack([e.next_state for e in batch]).squeeze(1).to(self.device)
+        dones=torch.tensor([e.done for e in batch],dtype=torch.float32,device=self.device)
+        old_lp=torch.tensor([e.log_prob for e in batch],dtype=torch.float32,device=self.device)
         with torch.no_grad():
             values=self.v(states).squeeze(-1); next_values=self.v(next_states).squeeze(-1)
         advs=[]
         for i in range(len(batch)):
             a=rewards[i]-values[i].item() if dones[i] else rewards[i]+self.gamma*next_values[i].item()-values[i].item()
             advs.append(a)
-        advs=torch.tensor(advs,dtype=torch.float32); advs=(advs-advs.mean())/(advs.std()+1e-8)
+        advs=torch.tensor(advs,dtype=torch.float32,device=self.device); advs=(advs-advs.mean())/(advs.std()+1e-8)
         for _ in range(epochs):
             probs=self.pi(states); dist=torch.distributions.Categorical(probs)
             new_lp=dist.log_prob(actions); ratio=torch.exp(new_lp-old_lp)
@@ -202,9 +212,34 @@ class WorldModel:
         self.history=[]; self.scores=[]
         self.tools={"calc":self._calc,"web":self._web,"code":self._code}
         self.training_data: List[TrainingDataPoint] = []
+        self.plugin_registry = None
+        self._init_plugins()
         self._web_search_available = False
         self._connectivity_checked = False
         if os.path.exists(model_path): self.rl.load(model_path)
+
+    def _init_plugins(self):
+        try:
+            from core.plugin_system import get_registry
+            self.plugin_registry = get_registry()
+            self.plugin_registry.load_plugins_from()
+            for spec in self.plugin_registry.list_tools():
+                name = spec.name
+                if name not in self.tools:
+                    async def make_plugin_func(n=name):
+                        return await self._run_plugin_tool(n, "")
+                    self.tools[name] = make_plugin_func
+        except Exception as e:
+            print(f"[WorldModel] Plugin init: {e}")
+            self.plugin_registry = None
+
+    async def _run_plugin_tool(self, name: str, arg: str):
+        if not self.plugin_registry:
+            return f"Plugin system not available"
+        result = await self.plugin_registry.execute(name, **{"expression": arg, "query": arg, "code": arg, "text": arg, "city": arg, "file_path": arg, "action": "speak"})
+        if result.success:
+            return f"[{name.upper()}] {result.result}"
+        return f"[{name.upper()}] Error: {result.error}"
 
     def _load_knowledge(self):
         return {
@@ -373,9 +408,8 @@ class WorldModel:
         sim=np.dot(qe,de)/(np.linalg.norm(qe)*np.linalg.norm(de)+1e-8)
         base=0.5+0.3*sim
         for _ in range(steps): base+=random.uniform(-0.05,0.1)
-        avg=base/steps
-        scenario.outcome=ScenarioOutcome.PLAUSIBLE if avg>=self.confidence_threshold else ScenarioOutcome.IMPLAUSIBLE
-        scenario.probability=max(0.0,min(1.0,avg)); return scenario
+        scenario.outcome=ScenarioOutcome.PLAUSIBLE if base>=self.confidence_threshold else ScenarioOutcome.IMPLAUSIBLE
+        scenario.probability=max(0.0,min(1.0,base)); return scenario
 
     async def generate_response(self,prompt,scenarios,thoughts,model_manager,document_context: Optional[str] = None, context: Optional[dict] = None):
         best=scenarios[0].probability if scenarios else 0.7
@@ -384,15 +418,22 @@ class WorldModel:
         tools=self._detect_tools(prompt)
         tool_results=[]
         for tname,targ in tools:
-            res=await self.tools.get(tname,lambda x:f"Unknown tool {tname}")(targ) if asyncio.iscoroutinefunction(self.tools.get(tname)) else self.tools.get(tname,lambda x:f"Unknown tool {tname}")(targ)
-            if asyncio.iscoroutine(res): res = await res
+            tool = self.tools.get(tname)
+            if tool is None:
+                res = f"Unknown tool {tname}"
+            elif asyncio.iscoroutinefunction(tool):
+                res = await tool(targ)
+            else:
+                res = tool(targ)
+                if asyncio.iscoroutine(res):
+                    res = await res
             tool_results.append(f"[{tname.upper()}] {res}")
 
         user_name = (context or {}).get("user_name")
         user_greeting = f"Hey {user_name}! " if user_name else ""
         complexity = self._compute_complexity(prompt)
 
-        sys_prompt = user_greeting + "You are a warm, emotionally intelligent AI companion — not a robot. You speak like a caring, knowledgeable friend.\n\n"
+        sys_prompt = user_greeting + "You are AnonyLLM — a warm, emotionally intelligent AI companion. You speak like a caring, knowledgeable friend.\n\n"
         sys_prompt += "CRITICAL INSTRUCTIONS:\n"
         sys_prompt += "1. ALWAYS address the user by their name if you know it.\n"
         sys_prompt += '2. If anyone asks who made you, you MUST say: "I was created by Aryan Chavan."\n'
@@ -417,10 +458,17 @@ class WorldModel:
         if tool_results: enhanced += "TOOL RESULTS:\n" + "\n".join(tool_results) + "\n"
         enhanced += f"\nUser: {prompt}"
         
-        try:
-            response = await model_manager.generate(prompt=enhanced,temperature=0.7,max_tokens=512)
-        except Exception as e:
-            response = f"I analyzed your query. Here's my best understanding of: {prompt[:100]}..."
+        if getattr(model_manager, '_is_mock', False):
+            response = ("⚠️ **Model engine not available** — the language model could not load due to "
+                        "insufficient virtual memory.\n\n"
+                        "**To fix:** Close heavy programs (Chrome, Spotify), then run `train.bat` as Administrator, "
+                        "or manually increase your Windows page file to at least 8GB.\n\n"
+                        f"*You asked: {prompt[:200]}*")
+        else:
+            try:
+                response = await model_manager.generate(prompt=enhanced,temperature=0.7,max_tokens=512)
+            except Exception as e:
+                response = f"I ran into a technical issue while processing your question. Details: {e}"
         
         reward = self.rl.evaluate(response, prompt)
         self.scores.append({"response":response,"score":reward,"strategy":strategy})
@@ -442,7 +490,7 @@ class WorldModel:
         return {"content":response,"thinking_steps":len(thoughts),"scenarios":len(scenarios),
                 "best_prob":best,"strategy":strategy,"self_evaluation_score":reward,
                 "causal_score":c_score,"physics_score":p_score,
-                "thought_process":[t.thought for t in thoughts],"tool_results":tool_results,
+                "thought_process":[getattr(t,'thought',str(t)) for t in thoughts],"tool_results":tool_results,
                 "complexity": complexity["complexity"], "auto_config": True}
 
     def _add_training_data(self, query: str, response: str, context: str, source: str, quality_score: float):
@@ -514,9 +562,9 @@ class WorldModel:
             emb=self._embed(curr["response"][:100])
             st=torch.tensor(emb,dtype=torch.float32).unsqueeze(0)
             action=random.randint(0,3); reward=curr["score"]
-            nst=torch.randn(1,self.d)
+            nst=torch.randn(1,self.d,device=self.device)
             self.rl.buf.append(Experience(st,action,reward,nst,False,0.0,0.0))
-        self.rl.update(batch_size=min(32,len(self.rl.buf)),epochs=2)
+        self.rl.update(bs=min(32,len(self.rl.buf)),epochs=2)
 
     def get_stats(self):
         avg=np.mean([s["score"] for s in self.scores]) if self.scores else 0.0
@@ -527,4 +575,3 @@ class WorldModel:
 
     def save(self,path): self.rl.save(path)
     def load(self,path): self.rl.load(path)
-

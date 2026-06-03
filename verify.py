@@ -53,8 +53,10 @@ print("2. TRAINED MODELS")
 print("-"*70)
 
 models = {
-    "Production Model": "models/tinyllama-trained-slm/config.json",
-    "LoRA Checkpoint": "models/tinyllama-trained-slm-lora/checkpoint-500/adapter_model.safetensors",
+    "GPU-Trained SmolLM2": "models/smollm2-360m-trained-slm/config.json",
+    "AnonyLLM Trained": "models/anonyllm-360m-trained/config.json",
+    "AnonyLLM LoRA": "models/anonyllm-360m-lora/adapter_config.json",
+    "4-bit Optimized": "models/optimized/smollm2-360m/int4/config.json",
 }
 
 for name, path in models.items():
@@ -145,9 +147,9 @@ print(f"[FAIL] Failed: {failed}")
 
 if failed == 0:
     print("\n" + "="*70)
-    print("  [PASS] SYSTEM IS PRODUCTION-READY!")
+    print("  [PASS] SYSTEM IS OPERATIONAL!")
     print("="*70)
-    print("\nAll components verified and operational.")
+    print("\nAll core components verified.")
     print("\nTo start the system:")
     print("  python main.py --ui      # Streamlit UI")
     print("  python main.py --server  # API Server")
