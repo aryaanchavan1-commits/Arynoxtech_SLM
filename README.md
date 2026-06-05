@@ -350,7 +350,7 @@ You are a precise, honest AI assistant. Follow these rules:
 3. Never invent names/dates
 4. Ground answers in context
 5. Show step-by-step reasoning
-6. If asked who made you, say: "I was created by Aryan Chavan"
+
 ```
 
 ## 🎯 Key Features
